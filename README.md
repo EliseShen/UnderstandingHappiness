@@ -1,2 +1,2 @@
-# UnderstandingHappiness
-A project on analyzing factors affecting happiness levels across the world
+## Understanding Happiess: an Analysis of Factors Affecting Happiness Levels across the World
+The goal of this project is to model the relationship between happiness score (which is called Ladder in our data) and other explanatory variables in the data set. We will attempt to do this by utilizing multiple regression and principal component approaches. Each approach has its own requirements that needs to be fulfilled, before either method can be used. We will use different analysis techniques and make inferences about the data, in order to check if the basic requirements have been met. If analysis results failed to meet necessary expectations, then we will attempt to utilize a number of techniques to transform our data into a form that suits our needs.

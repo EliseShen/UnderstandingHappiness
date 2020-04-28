@@ -1,0 +1,143 @@
+---
+title: "437Project"
+author: "ChenxinranShen (1004380092)"
+date: "23/03/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+# Appendix
+Chenxinran Shen (1004380092)
+
+## Preparation
+```{r new}
+library(dplyr)
+library(MVN)
+```
+```{r start}
+# import data
+country<-read.csv("happiness2017.csv")
+```
+## Q2. 
+First remove all rows with missing value, then random 100 sample from country without replacement.
+```{r Q2 random sample of 100 countries}
+# 1.random 100 sample without replacement,no missing value
+set.seed(0092)
+country<-na.omit(country)
+head(country)
+
+country_sample <- sample_n (country, 100,replace = FALSE)
+#summary(country_sample)
+```
+Second, check the nomality of sample using functions from MVN package, by drawing chi-square plot. under the method of Henze-Zirkler’s test. 
+Third, remove the outliers from the sample. Transform variables using square root transformation. Then remove the outliers in transformed data set.
+Check nomality using chi-square plot again, we can see the transformed data is distributed as MVN right now.
+```{r Q2}
+# 2 nomality + outlier, remove outlier
+country_sample_2<-country_sample[,-1]
+par(mfrow=c(2,2))
+result_oritinal <- mvn(data = country_sample_2, mvnTest = "hz", multivariateOutlierMethod = "quan")
+
+# 3.1. remove outliers
+result_noOutlier <- mvn(data = country_sample_2, mvnTest = "hz", multivariateOutlierMethod = "quan",showNewData = TRUE)
+#result_noOutlier$newData+1
+# 3.2. transform data
+result_tran<- sqrt(result_noOutlier$newData)
+# 3.3. check transformed data with no outlier's nomality
+result_tran_noOutlier <- mvn(data = result_tran, mvnTest = "hz", multivariateOutlierMethod = "quan",showNewData = TRUE)
+
+#result_tran_noOutlier
+result <-mvn(result_tran_noOutlier$newData,multivariateOutlierMethod = "quan")[1]
+new_sample <- result_tran_noOutlier$newData # tansformed data with no outliers
+result
+
+```
+## Q3
+Fit a linear regression model on original sampled data.
+```{r Question 3 LM}
+set.seed(0092)
+# 1. Fit a linear model for the response variable- happiness score using all the original explanatory variables.
+lmod<-lm(Ladder~Social+HLE+Freedom+Generosity+Corruption+Positive+Negative+gini,data = new_sample)
+summary(lmod)
+
+
+# only social and HLE have a small p value
+
+# 2. Check whether the assumptions of this model are satiisfieded. 
+par(mfrow=c(2,2))
+plot(lmod, main = "                                            0092")
+abline(lmod)
+
+# 3. Report the `Adjusted R-squared' value from the R summary(lm(:::)) output
+```
+
+## Q4
+```{r Question 4 PC/1}
+set.seed(0092)
+# 1. since the data set is normal ottain standardized variables
+X= as.matrix(new_sample)  
+x.bar = apply(X,2,mean)
+S= cov(X)
+
+Z=X
+for(i in 1:ncol(Z)){
+  Z[,i] = (X[,i]-x.bar[i])/sqrt(diag(S)[i])
+}
+
+# 2. From correlation matrix, get eigen value and eigen vectors
+R = cor(X)
+cov(Z)  # they should be the same!
+
+# obtain eigenvalues and eigenvectors of R, from correlation matrix
+Val.new = eigen(R)$values
+#round(Val.new ,2)
+
+Vec.new = eigen(R)$vectors
+rownames(Vec.new) = colnames(X)
+colnames(Vec.new) = c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6","PC7","PC8","PC9","PC10")
+#round(Vec.new ,2)
+
+# 3. Get Principle Component values
+
+W.new = X  # just to create a data matrix of the same size of X
+colnames(W.new) = c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6","PC7","PC8","PC9","PC10")
+
+# now fill in the entries by calculating sample PCs
+
+for(i in 1:ncol(new_sample)){ # PC's
+ 	for(j in 1:nrow(new_sample)){
+	W.new[j,i] = Vec.new[,i] %*% Z[j,]   # no need to center when using normalized PCCs 
+ }}
+
+# Show Principal Components have zero correlation:
+
+plot(data.frame(W.new),main = "Check Correlation between Principal Components 0092") 
+
+# 4. How many components should we keep? 
+# screeplot:
+
+#plot(Val.new, type="b", pch=99, xlab="",ylab="Variances")  # suggests keeping the first 4 or 5 PCs.
+
+# Proportion of variation explained by each PC:
+
+round( Val.new/sum(Val.new),3)  
+
+# If you like, you can use built-in functions in R for a summary:
+
+summary(prcomp(Z))
+screeplot(prcomp(Z),npcs = 10, type = "lines",main = "Screeplot for Happiness Data 0092") # choose 4
+```
+```{r Q4/1.2}
+# 5. Regression with all standardized PCs as the explanatory variables
+
+PC.model.new.1 <- lm(new_sample$Ladder ~  W.new[,1] + W.new[,2] + W.new[,3] + W.new[,4] + W.new[,5]+ W.new[,6]+W.new[,7]+W.new[,8]+W.new[,9])
+summary(PC.model.new.1) 
+
+# since principle complenent 1,4,8,9 have smallest p-value. use them to buile a new linear regression
+PC.model.new.2 <- lm(new_sample$Ladder ~  W.new[,1] + W.new[,4]  + W.new[,9]+ +W.new[,8])
+summary(PC.model.new.2)
+PC.model.new.1$df.residual
+
+```
+
+
